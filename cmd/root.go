@@ -311,17 +311,33 @@ func (p *sprayCmd) spray() error {
 
 	// Loop on the increasing weight
 	for i := 0; i <= maxWeight(deps); i++ {
-		shouldWait, err := p.upgrade(releases, deps, i)
+		_, err := p.upgrade(releases, deps, i)
 		if err != nil {
 			return err
 		}
 		// Wait availability of the just upgraded Releases
-		if shouldWait && !p.dryRun {
-			err = p.wait()
-			if err != nil {
-				return err
-			}
-		}
+		// if shouldWait && !p.dryRun {
+		// 	err = p.wait()
+		// 	if err != nil {
+		// 		return err
+		// 	}
+		// }
+		/* 
+		Problem:
+		Operators reported that sometime, Helm release was blocked and waiting for an unrelated deployment (in the same namespace) to be ready.
+		
+		Reason:
+		helm spray list all deployment belongs to current chart this way:
+		1. List all deployments, jobs, stateful set in same namespace before upgrade.
+		2. Perform upgrade.
+		3. List all deployments, jobs, stateful set after upgrade.
+		4. Compare the difference
+		This approach is problematic because if new deployment is create between 1 and 3 
+		by another Helm release running in parallel, then helm spray will include pods of that deployment too.
+
+		Solution:
+		Since we already add --wait flag for upgrade process, simply remove this wait() function should be suffice.
+		*/
 	}
 
 	log.Info(1, "upgrade of solution chart \"%s\" completed in %s", p.chartName, util.Duration(time.Since(startTime)))
